@@ -1,0 +1,41 @@
+---
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import StudyLesson from '../../components/StudyLesson.astro';
+import { loadCatalog, mustGet, neighbors } from '../../lib/catalog';
+import { pad, url } from '../../lib/url';
+
+export async function getStaticPaths() {
+  const { pronunciation } = await loadCatalog();
+  return pronunciation.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const catalog = await loadCatalog();
+const { Content } = await render(entry);
+const { prev, next } = neighbors(catalog.pronunciation, entry.id, 'pronunciation');
+const prerequisites = entry.data.prerequisites.map((ref) => mustGet(catalog.links, ref));
+---
+
+<Base title={entry.data.title} description={entry.data.summary} current={`pronunciation:${entry.id}`}>
+  <StudyLesson
+    crumbs={[{ href: url(''), label: '首页' }, { href: url('pronunciation'), label: '发音入门' }]}
+    eyebrow={`发音 · ${pad(entry.data.order)}`}
+    title={entry.data.title}
+    titleEn={entry.data.titleEn}
+    summary={entry.data.summary}
+    level={entry.data.level}
+    minutes={entry.data.minutes}
+    lessonId={`pronunciation:${entry.id}`}
+    formula={entry.data.formula}
+    examples={entry.data.examples}
+    mistakes={entry.data.mistakes}
+    recap={entry.data.recap}
+    quiz={entry.data.quiz}
+    prerequisites={prerequisites}
+    prev={prev}
+    next={next}
+  >
+    <Content />
+  </StudyLesson>
+</Base>

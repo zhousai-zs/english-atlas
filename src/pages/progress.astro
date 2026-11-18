@@ -1,0 +1,46 @@
+---
+import Base from '../layouts/Base.astro';
+import { loadCatalog } from '../lib/catalog';
+import { url } from '../lib/url';
+
+const catalog = await loadCatalog();
+const blocks = [
+  { title: '发音', items: catalog.pronunciation.map((item) => ({ ref: `pronunciation:${item.id}`, href: url(`pronunciation/${item.id}`), title: item.data.title })) },
+  { title: '语法', items: catalog.grammar.map((item) => ({ ref: `grammar:${item.id}`, href: url(`grammar/${item.id}`), title: item.data.title })) },
+  { title: '词汇', items: catalog.vocabulary.map((item) => ({ ref: `vocabulary:${item.id}`, href: url(`vocabulary/${item.id}`), title: item.data.title })) },
+  { title: '长难句', items: [
+    { ref: `analysis:${catalog.analysis.id}`, href: url(`sentences/${catalog.analysis.id}`), title: catalog.analysis.data.title },
+    ...catalog.sentences.map((item) => ({ ref: `sentences:${item.id}`, href: url(`sentences/${item.id}`), title: item.data.title })),
+  ] },
+];
+---
+
+<Base title="我的进度" description="查看保存在这台浏览器里的已学课文和测验成绩。" current="progress" wide>
+  <nav class="crumbs" aria-label="面包屑"><ol><li><a href={url('')}>首页</a></li><li aria-current="page">我的进度</li></ol></nav>
+  <p class="eyebrow">Progress</p>
+  <h1>我的进度</h1>
+  <p data-progress-summary>正在读取这台浏览器里的记录…</p>
+  <p>完成测验会自动标成已学完。你也可以在课文页手动标记。换浏览器、换设备或清除站点数据之后，记录不会跟着走。</p>
+  <button class="btn btn-ghost" id="reset-progress" type="button">清除本机进度</button>
+  {blocks.map((block) => (
+    <section>
+      <h2>{block.title}</h2>
+      <table class="progress">
+        <caption class="sr-only">{block.title}进度</caption>
+        <thead>
+          <tr><th scope="col">课文</th><th scope="col">状态</th><th scope="col">最好成绩</th></tr>
+        </thead>
+        <tbody>
+          {block.items.map((item) => (
+            <tr data-track-id={item.ref}>
+              <td><a href={item.href} data-nav-id={item.ref}>{item.title}<span class="nav-mark" hidden>已学</span></a></td>
+              <td data-state-for={item.ref}>未学完</td>
+              <td data-quiz-for={item.ref}>—</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  ))}
+  <noscript><p>进度页面需要浏览器脚本才能读出 localStorage。课文本身不依赖它。</p></noscript>
+</Base>

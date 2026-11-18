@@ -1,0 +1,83 @@
+---
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Quiz from '../../components/Quiz.astro';
+import { loadCatalog, mustGet, neighbors } from '../../lib/catalog';
+import { pad, url } from '../../lib/url';
+
+export async function getStaticPaths() {
+  const { vocabulary } = await loadCatalog();
+  return vocabulary.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const catalog = await loadCatalog();
+const { Content } = await render(entry);
+const { prev, next } = neighbors(catalog.vocabulary, entry.id, 'vocabulary');
+const prerequisites = entry.data.prerequisites.map((ref) => mustGet(catalog.links, ref));
+const lessonId = `vocabulary:${entry.id}`;
+---
+
+<Base title={entry.data.title} description={entry.data.summary} current={lessonId}>
+  <article>
+    <nav class="crumbs" aria-label="面包屑">
+      <ol>
+        <li><a href={url('')}>首页</a></li>
+        <li><a href={url('vocabulary')}>词汇</a></li>
+        <li aria-current="page">{entry.data.title}</li>
+      </ol>
+    </nav>
+    <header class="lesson-head">
+      <p class="eyebrow">词汇 · {entry.data.group} · {pad(entry.data.order)}</p>
+      <h1>{entry.data.title}</h1>
+      <p class="title-en" lang="en">{entry.data.titleEn}</p>
+      <p class="summary">{entry.data.summary}</p>
+      <dl class="meta">
+        <div><dt>级别</dt><dd>{entry.data.level}</dd></div>
+        <div><dt>词条</dt><dd>{entry.data.entries.length}</dd></div>
+        <div><dt>建议用时</dt><dd>约 {entry.data.minutes} 分钟</dd></div>
+      </dl>
+      {prerequisites.length > 0 && (
+        <p>先修：{prerequisites.map((item, index) => <span>{index > 0 && '、'}<a href={item.href}>{item.title}</a></span>)}</p>
+      )}
+      <p>音标为英式。词表按本站课程需要编写，不是任何一家考试机构或词典的官方词表。</p>
+      <button class="btn btn-ghost complete-btn" type="button" data-complete={lessonId} aria-pressed="false">标记为已学完</button>
+      <p data-score-for={lessonId} hidden></p>
+    </header>
+    <div class="prose"><Content /></div>
+    <section>
+      <h2>词表</h2>
+      {entry.data.entries.map((word) => (
+        <article class="word" id={word.head.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase()}>
+          <div class="word-head">
+            <h3 lang="en">{word.head}</h3>
+            <p class="pos">{word.pos}</p>
+            <p class="ipa" lang="en">{word.ipa}</p>
+          </div>
+          <p class="gloss">{word.gloss}</p>
+          {word.collocations.length > 0 && (
+            <ul class="collocations">
+              {word.collocations.map((item) => <li lang="en">{item}</li>)}
+            </ul>
+          )}
+          {word.examples.map((example) => (
+            <div>
+              <p class="ex-en" lang="en">{example.en}</p>
+              <p class="ex-zh">{example.zh}</p>
+            </div>
+          ))}
+          {word.note && <p class="word-note">{word.note}</p>}
+        </article>
+      ))}
+    </section>
+    <section>
+      <h2>小结</h2>
+      <ul>{entry.data.recap.map((item) => <li>{item}</li>)}</ul>
+    </section>
+    <Quiz lessonId={lessonId} questions={entry.data.quiz} />
+    <nav class="pager" aria-label="上一课和下一课">
+      {prev ? <a href={prev.href}><span>上一单元</span><strong>{prev.title}</strong></a> : <span></span>}
+      {next ? <a class="next" href={next.href}><span>下一单元</span><strong>{next.title}</strong></a> : <span></span>}
+    </nav>
+  </article>
+</Base>

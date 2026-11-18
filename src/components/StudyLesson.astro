@@ -1,0 +1,111 @@
+---
+import type { ExamplePair, Mistake, QuizQuestion } from '../lib/schemas';
+import Quiz from './Quiz.astro';
+
+interface Link {
+  href: string;
+  title: string;
+}
+interface Props {
+  crumbs: { href: string; label: string }[];
+  eyebrow: string;
+  title: string;
+  titleEn: string;
+  summary: string;
+  level: string;
+  minutes: number;
+  lessonId: string;
+  formula: string;
+  examples: ExamplePair[];
+  mistakes: Mistake[];
+  recap: string[];
+  quiz: QuizQuestion[];
+  prerequisites: Link[];
+  prev?: Link;
+  next?: Link;
+}
+const props = Astro.props;
+---
+
+<article class="lesson">
+  <nav class="crumbs" aria-label="面包屑">
+    <ol>
+      {props.crumbs.map((crumb) => (
+        <li><a href={crumb.href}>{crumb.label}</a></li>
+      ))}
+      <li aria-current="page">{props.title}</li>
+    </ol>
+  </nav>
+  <header class="lesson-head">
+    <p class="eyebrow">{props.eyebrow}</p>
+    <h1>{props.title}</h1>
+    <p class="title-en" lang="en">{props.titleEn}</p>
+    <p class="summary">{props.summary}</p>
+    <dl class="meta">
+      <div><dt>级别</dt><dd>{props.level}</dd></div>
+      <div><dt>建议用时</dt><dd>约 {props.minutes} 分钟</dd></div>
+    </dl>
+    {props.prerequisites.length > 0 && (
+      <p>先修：{props.prerequisites.map((item, index) => (
+        <span>{index > 0 && '、'}<a href={item.href}>{item.title}</a></span>
+      ))}</p>
+    )}
+    <button class="btn btn-ghost complete-btn" type="button" data-complete={props.lessonId} aria-pressed="false">标记为已学完</button>
+    <p class="saved-score" data-score-for={props.lessonId} hidden></p>
+  </header>
+
+  <div class="prose"><slot /></div>
+
+  <section>
+    <h2>形式</h2>
+    <pre class="formula">{props.formula}</pre>
+  </section>
+
+  <section>
+    <h2>例句</h2>
+    <p>先盖住中文，自己说一遍，再对照。括号里的说明点出这一句在练什么。</p>
+    <ol class="examples">
+      {props.examples.map((example, index) => (
+        <li class="example">
+          <span class="ex-num">{index + 1}</span>
+          <div>
+            <p class="ex-en" lang="en">{example.en}</p>
+            <p class="ex-zh">{example.zh}</p>
+            {example.note && <p class="ex-note">{example.note}</p>}
+          </div>
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <section>
+    <h2>中国学习者容易错在哪里</h2>
+    <ul class="mistakes">
+      {props.mistakes.map((item) => (
+        <li class="mistake">
+          <p class="bad"><span class="tag">不宜</span> <span lang="en">{item.wrong}</span></p>
+          <p class="good"><span class="tag">宜</span> <span lang="en">{item.right}</span></p>
+          <p class="why">{item.why}</p>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section>
+    <h2>小结</h2>
+    <ul class="recap">
+      {props.recap.map((item) => <li>{item}</li>)}
+    </ul>
+  </section>
+
+  <Quiz lessonId={props.lessonId} questions={props.quiz} />
+
+  <nav class="pager" aria-label="上一课和下一课">
+    {props.prev ? (
+      <a href={props.prev.href}><span>上一课</span><strong>{props.prev.title}</strong></a>
+    ) : <span></span>}
+    {props.next ? (
+      <a class="next" href={props.next.href}><span>下一课</span><strong>{props.next.title}</strong></a>
+    ) : <span></span>}
+  </nav>
+</article>

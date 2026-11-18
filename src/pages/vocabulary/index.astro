@@ -1,0 +1,32 @@
+---
+import Base from '../../layouts/Base.astro';
+import CardList from '../../components/CardList.astro';
+import { groupBy, loadCatalog } from '../../lib/catalog';
+import { pad, url } from '../../lib/url';
+
+const { vocabulary } = await loadCatalog();
+const groups = groupBy(vocabulary);
+---
+
+<Base title="词汇" description="按主题和大致难度整理的词汇单元，含词缀、短语动词和易混词。音标、词性和例句都写在词条里。" current="vocabulary" wide>
+  <nav class="crumbs" aria-label="面包屑"><ol><li><a href={url('')}>首页</a></li><li aria-current="page">词汇</li></ol></nav>
+  <p class="eyebrow">Vocabulary</p>
+  <h1>词汇</h1>
+  <p class="lede">共 {vocabulary.length} 个单元。A1、A2、B1 只表示本站建议的学习难度，方便你安排顺序，不是某套考试的官方词表。每个词给出词性、英式音标、中文释义、例句，有用的搭配会单独列出。</p>
+  {groups.map((group) => (
+    <section>
+      <h2>{group.name}</h2>
+      <CardList
+        items={group.items.map((item) => ({
+          ref: `vocabulary:${item.id}`,
+          href: url(`vocabulary/${item.id}`),
+          index: pad(item.data.order),
+          title: item.data.title,
+          titleEn: item.data.titleEn,
+          meta: `${item.data.level} · ${item.data.entries.length} 条 · 约 ${item.data.minutes} 分钟`,
+          summary: item.data.summary,
+        }))}
+      />
+    </section>
+  ))}
+</Base>

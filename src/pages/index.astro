@@ -1,0 +1,81 @@
+---
+import Base from '../layouts/Base.astro';
+import { loadCatalog } from '../lib/catalog';
+import { url } from '../lib/url';
+
+const catalog = await loadCatalog();
+const order = catalog.path.data.stages.flatMap((stage) =>
+  stage.lessons.map((ref) => {
+    const link = catalog.links.get(ref);
+    if (!link) throw new Error(ref);
+    return { ref, href: link.href, title: link.title };
+  }),
+);
+const first = order[0];
+---
+
+<Base title="英语地图" current="home" description="给中文母语者的从零英语课。按发音、词法、句型、词汇、长难句的顺序学，每课都有例句、易错点和测验。">
+  <section class="hero">
+    <div class="hero-rule" aria-hidden="true"></div>
+    <p class="eyebrow"><span lang="en">English Atlas</span> · 从零开始</p>
+    <h1>英语地图</h1>
+    <p class="lede">一套用中文写给成人初学者的英语基础课。先把音读准，再搭起句子的骨架，然后按主题积累词汇，最后学会拆开长句。解释说人话，例句都配中文。</p>
+    <div class="hero-actions">
+      <a class="btn" id="resume-link" href={first.href}>从「{first.title}」开始</a>
+      <a class="btn btn-ghost" href={url('path')}>看完整学习路径</a>
+    </div>
+    <p id="resume-note">适合零基础的上班族，也适合后来要读英文技术博客的工程师。每天 30 到 45 分钟就够往前走。</p>
+    <script id="path-order" type="application/json" is:inline set:html={JSON.stringify(order).replace(/</g, '\\u003c')}></script>
+  </section>
+
+  <section>
+    <h2>建议就按这个顺序</h2>
+    <ol class="stage-list">
+      {catalog.path.data.stages.map((stage, index) => (
+        <li class="stage" id={`home-${stage.id}`}>
+          <div class="stage-top">
+            <span class="chip">阶段 {index + 1}</span>
+            <span>{stage.difficulty}</span>
+            <span>{stage.pace}</span>
+          </div>
+          <h3><a href={`${url('path')}#${stage.id}`}>{stage.title}</a></h3>
+          <p>{stage.summary}</p>
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <section>
+    <h2>一课里面有什么</h2>
+    <div class="anatomy">
+      <article>
+        <h3>规则</h3>
+        <p>用中文讲这条语法什么时候用，和中文哪里不一样。</p>
+      </article>
+      <article>
+        <h3>形式</h3>
+        <p>一句能对照的公式，加上至少 8 组英汉例句。</p>
+      </article>
+      <article>
+        <h3>易错与练习</h3>
+        <p>写出中国学习者常见的错句，再用 5 道题立刻核对。</p>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <h2>四条主干</h2>
+    <ul class="card-list">
+      <li><a class="card" href={url('pronunciation')}><h3>发音入门</h3><p class="card-meta">{catalog.pronunciation.length} 课</p><p>字母、音标、重音，以及 th、v/w、l/r 这些坑。</p></a></li>
+      <li><a class="card" href={url('grammar')}><h3>语法</h3><p class="card-meta">{catalog.grammar.length} 课</p><p>从名词和冠词走到从句、非谓语和虚拟语气入门。</p></a></li>
+      <li><a class="card" href={url('vocabulary')}><h3>词汇</h3><p class="card-meta">{catalog.vocabulary.length} 个单元</p><p>按主题和大致难度分级，另有词缀、短语动词和易混词。</p></a></li>
+      <li><a class="card" href={url('sentences')}><h3>长难句</h3><p class="card-meta">方法 + {catalog.sentences.length} 句</p><p>从日常说明句练到新闻、科普和后端技术博客里的句子。</p></a></li>
+    </ul>
+  </section>
+
+  <section class="callout">
+    <h2>给要读技术博客的人</h2>
+    <p>语法课不假设你以前学过英语。长难句的后半段用请求、缓存、队列、发布这种工作里会遇见的句子做练习。那些句子用的仍是前面学过的从句和非谓语，只是话题换成了你的工作。词表里也有一单元专门收工程阅读里反复出现的词。</p>
+    <p><a href={url('resources')}>学习资料</a>收的是词典、语法书、播客和分级读物的公开入口，并标明免费还是付费、适合哪一阶段。</p>
+  </section>
+</Base>

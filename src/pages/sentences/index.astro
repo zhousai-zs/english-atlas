@@ -1,0 +1,39 @@
+---
+import Base from '../../layouts/Base.astro';
+import CardList from '../../components/CardList.astro';
+import { loadCatalog } from '../../lib/catalog';
+import { pad, url } from '../../lib/url';
+
+const catalog = await loadCatalog();
+---
+
+<Base title="长难句解析" description="先学拆句方法，再读 15 个由易到难的句子，包括日常说明、新闻、科普和技术博客。" current="sentences" wide>
+  <nav class="crumbs" aria-label="面包屑"><ol><li><a href={url('')}>首页</a></li><li aria-current="page">长难句</li></ol></nav>
+  <p class="eyebrow">Sentences</p>
+  <h1>长难句解析</h1>
+  <p class="lede">先把方法课做完。后面的句子都是为本站写的，难度往上走，后半段是后端工程师会在技术博客里见到的那种句子。每句都有结构、分块释义、译文，并链回语法课。</p>
+  <h2>先学方法</h2>
+  <CardList
+    items={[{
+      ref: `analysis:${catalog.analysis.id}`,
+      href: url(`sentences/${catalog.analysis.id}`),
+      index: '00',
+      title: catalog.analysis.data.title,
+      titleEn: catalog.analysis.data.titleEn,
+      meta: `${catalog.analysis.data.level} · 约 ${catalog.analysis.data.minutes} 分钟`,
+      summary: catalog.analysis.data.summary,
+    }]}
+  />
+  <h2>句子</h2>
+  <CardList
+    items={catalog.sentences.map((item) => ({
+      ref: `sentences:${item.id}`,
+      href: url(`sentences/${item.id}`),
+      index: pad(item.data.order),
+      title: item.data.title,
+      titleEn: item.data.titleEn,
+      meta: `${item.data.style} · 难度 ${item.data.difficulty}/5 · 约 ${item.data.minutes} 分钟`,
+      summary: item.data.summary,
+    }))}
+  />
+</Base>

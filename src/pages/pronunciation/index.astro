@@ -1,0 +1,26 @@
+---
+import Base from '../../layouts/Base.astro';
+import CardList from '../../components/CardList.astro';
+import { loadCatalog } from '../../lib/catalog';
+import { pad, url } from '../../lib/url';
+
+const { pronunciation } = await loadCatalog();
+---
+
+<Base title="发音入门" description="字母、元音、辅音和重音。面向中文母语者，集中处理 th、v/w、l/r、长短元音和词尾辅音。" current="pronunciation">
+  <nav class="crumbs" aria-label="面包屑"><ol><li><a href={url('')}>首页</a></li><li aria-current="page">发音入门</li></ol></nav>
+  <p class="eyebrow">Pronunciation</p>
+  <h1>发音入门</h1>
+  <p class="lede">音标用的是英式音标，和剑桥、朗文学习词典的标法接近。美式读音差别大的地方会在课里点出来。先把这一组学完，再开始语法，后面的词才读得出来。</p>
+  <CardList
+    items={pronunciation.map((item) => ({
+      ref: `pronunciation:${item.id}`,
+      href: url(`pronunciation/${item.id}`),
+      index: pad(item.data.order),
+      title: item.data.title,
+      titleEn: item.data.titleEn,
+      meta: `${item.data.level} · 约 ${item.data.minutes} 分钟`,
+      summary: item.data.summary,
+    }))}
+  />
+</Base>
