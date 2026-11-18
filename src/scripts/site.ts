@@ -132,32 +132,156 @@ function setupTheme() {
   });
 }
 
+function setupHeaderChrome() {
+  const header = document.querySelector<HTMLElement>('.header');
+  const search = document.querySelector<HTMLInputElement>('#site-search');
+  const wide = window.matchMedia('(min-width: 961px)');
+  const syncPlaceholder = () => {
+    if (!search) return;
+    const next = wide.matches ? '搜索，按 / 聚焦' : '搜索课程';
+    if (search.placeholder !== next) search.placeholder = next;
+  };
+  const syncHeaderHeight = () => {
+    if (!header) return;
+    const height = Math.round(header.getBoundingClientRect().height);
+    if (height > 0) document.documentElement.style.setProperty('--header', `${height}px`);
+  };
+  syncPlaceholder();
+  syncHeaderHeight();
+  wide.addEventListener('change', () => {
+    syncPlaceholder();
+    syncHeaderHeight();
+  });
+  if (header && 'ResizeObserver' in window) {
+    const observer = new ResizeObserver(() => syncHeaderHeight());
+    observer.observe(header);
+  } else {
+    window.addEventListener('resize', syncHeaderHeight);
+  }
+  document.fonts?.ready.then(syncHeaderHeight).catch(() => undefined);
+}
+
 function setupNav() {
   const toggle = document.querySelector<HTMLButtonElement>('#nav-toggle');
+  const closeBtn = document.querySelector<HTMLButtonElement>('#nav-close');
   const sidebar = document.querySelector<HTMLElement>('#sidebar');
   const backdrop = document.querySelector<HTMLElement>('#nav-backdrop');
-  const setOpen = (open: boolean) => {
-    document.body.classList.toggle('nav-open', open);
-    toggle?.setAttribute('aria-expanded', String(open));
-    if (backdrop) backdrop.hidden = !open;
+  const mainCol = document.querySelector<HTMLElement>('.main-col');
+  const mobileQuery = window.matchMedia('(max-width: 960px)');
+  let lockedScrollY = 0;
+
+  const scrollCurrent = () => {
+    if (!sidebar) return;
+    const current = sidebar.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!current) return;
+    const bar = sidebar.querySelector<HTMLElement>('.drawer-bar');
+    const barHeight = bar && getComputedStyle(bar).display !== 'none' ? bar.offsetHeight : 0;
+    const clearance = Math.max(barHeight + 12, Math.round(sidebar.clientHeight / 3));
+    const delta = current.getBoundingClientRect().top - sidebar.getBoundingClientRect().top;
+    sidebar.scrollTop = Math.max(0, sidebar.scrollTop + delta - clearance);
   };
-  toggle?.addEventListener('click', () => setOpen(!document.body.classList.contains('nav-open')));
-  backdrop?.addEventListener('click', () => setOpen(false));
-  sidebar?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => setOpen(false)));
+
+  const lockScroll = () => {
+    lockedScrollY = window.scrollY;
+    document.body.style.top = `-${lockedScrollY}px`;
+    document.body.classList.add('nav-open');
+    document.documentElement.classList.add('nav-open');
+  };
+
+  const unlockScroll = () => {
+    document.body.classList.remove('nav-open');
+    document.documentElement.classList.remove('nav-open');
+    document.body.style.top = '';
+    const root = document.documentElement;
+    const previous = root.style.scrollBehavior;
+    root.style.scrollBehavior = 'auto';
+    window.scrollTo(0, lockedScrollY);
+    root.style.scrollBehavior = previous;
+  };
+
+  const setOpen = (open: boolean, returnFocus: boolean) => {
+    const mobile = mobileQuery.matches;
+    const next = open && mobile;
+    const wasOpen = document.body.classList.contains('nav-open');
+    if (!next && sidebar && document.activeElement instanceof Node && sidebar.contains(document.activeElement)) {
+      toggle?.focus({ preventScroll: true });
+    }
+    if (next && !wasOpen) lockScroll();
+    else if (!next && wasOpen) unlockScroll();
+    toggle?.setAttribute('aria-expanded', String(next));
+    toggle?.setAttribute('aria-label', next ? '关闭目录' : '打开目录');
+    if (backdrop) backdrop.hidden = !next;
+    if (sidebar) {
+      if (mobile && !next) sidebar.setAttribute('inert', '');
+      else sidebar.removeAttribute('inert');
+    }
+    mainCol?.toggleAttribute('inert', next);
+    if (next) {
+      window.requestAnimationFrame(() => {
+        scrollCurrent();
+        closeBtn?.focus({ preventScroll: true });
+      });
+    } else if (returnFocus) {
+      toggle?.focus({ preventScroll: true });
+    }
+  };
+
+  toggle?.addEventListener('click', () => {
+    const willOpen = !document.body.classList.contains('nav-open');
+    setOpen(willOpen, !willOpen);
+  });
+  backdrop?.addEventListener('click', () => setOpen(false, true));
+  closeBtn?.addEventListener('click', () => setOpen(false, true));
+  sidebar?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => setOpen(false, false)));
+
+  const scrollKeys = new Set(['PageUp', 'PageDown', 'Home', 'End', 'ArrowUp', 'ArrowDown']);
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') setOpen(false);
+    const open = document.body.classList.contains('nav-open');
+    if (event.key === 'Escape' && open) {
+      event.preventDefault();
+      setOpen(false, true);
+      return;
+    }
+    if (open && scrollKeys.has(event.key)) {
+      const target = event.target;
+      if (target instanceof Node && sidebar?.contains(target)) {
+        if (sidebar && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+          sidebar.scrollBy({ top: event.key === 'ArrowDown' ? 56 : -56, behavior: 'auto' });
+          event.preventDefault();
+        }
+        return;
+      }
+      event.preventDefault();
+      return;
+    }
     const target = event.target as HTMLElement | null;
     const typing = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
-    if (event.key === '/' && !typing) {
+    if (event.key === '/' && !typing && !open) {
       event.preventDefault();
       document.querySelector<HTMLInputElement>('#site-search')?.focus();
     }
   });
-  const current = sidebar?.querySelector<HTMLElement>('[aria-current="page"]');
-  if (current && sidebar && window.matchMedia('(min-width: 961px)').matches) {
-    const top = current.getBoundingClientRect().top - sidebar.getBoundingClientRect().top;
-    sidebar.scrollTop = Math.max(0, top - sidebar.clientHeight / 3);
-  }
+
+  const allowScrollTarget = (target: EventTarget | null) => {
+    if (!(target instanceof Node)) return false;
+    if (sidebar?.contains(target)) return true;
+    if (target instanceof HTMLElement && target.closest('input, textarea, select')) return true;
+    return false;
+  };
+  const blockBackgroundScroll = (event: Event) => {
+    if (!document.body.classList.contains('nav-open')) return;
+    if (allowScrollTarget(event.target)) return;
+    event.preventDefault();
+  };
+  document.addEventListener('touchmove', blockBackgroundScroll, { passive: false });
+  document.addEventListener('wheel', blockBackgroundScroll, { passive: false });
+
+  mobileQuery.addEventListener('change', () => {
+    setOpen(false, false);
+    if (!mobileQuery.matches) scrollCurrent();
+  });
+  setOpen(false, false);
+  if (!mobileQuery.matches) scrollCurrent();
 }
 
 function setupComplete() {
@@ -267,6 +391,19 @@ function setupQuiz(form: HTMLFormElement) {
     });
   });
 
+  form.addEventListener('focusin', (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const item = target.closest<HTMLElement>('.quiz-item');
+    if (!item) return;
+    window.requestAnimationFrame(() => {
+      const bar = document.querySelector<HTMLElement>('.header');
+      const limit = (bar?.getBoundingClientRect().height ?? 0) + 12;
+      const top = item.getBoundingClientRect().top;
+      if (top < limit) window.scrollBy({ top: top - limit, behavior: 'auto' });
+    });
+  });
+
   form.querySelector<HTMLButtonElement>('.retry')?.addEventListener('click', () => {
     answered.clear();
     items.forEach((item) => {
@@ -310,8 +447,11 @@ function snippet(text: string, query: string): string {
 
 function setupSearch() {
   const input = document.querySelector<HTMLInputElement>('#search-query');
+  const headerInput = document.querySelector<HTMLInputElement>('#site-search');
   const results = document.querySelector<HTMLElement>('#search-results');
   const status = document.querySelector<HTMLElement>('#search-status');
+  const initial = new URLSearchParams(window.location.search).get('q') || '';
+  if (headerInput && initial) headerInput.value = initial;
   if (!input || !results || !status) return;
 
   let docs: SearchDoc[] | null = null;
@@ -383,18 +523,34 @@ function setupSearch() {
       .join('');
   };
 
-  const initial = new URLSearchParams(window.location.search).get('q') || '';
   if (initial) input.value = initial;
+  const mirrorHeader = () => {
+    if (headerInput && headerInput.value !== input.value) headerInput.value = input.value;
+  };
   input.addEventListener('input', () => {
+    mirrorHeader();
     window.clearTimeout(Number(input.dataset.timer || 0));
     const timer = window.setTimeout(() => void render(), 120);
     input.dataset.timer = String(timer);
+  });
+  headerInput?.addEventListener('input', () => {
+    if (!headerInput || input.value === headerInput.value) return;
+    input.value = headerInput.value;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  headerInput?.form?.addEventListener('submit', (event) => {
+    if (!headerInput) return;
+    event.preventDefault();
+    if (input.value !== headerInput.value) input.value = headerInput.value;
+    window.clearTimeout(Number(input.dataset.timer || 0));
+    void render();
   });
   if (initial) void render();
   else status.textContent = '输入中文或英文，例如「冠词」「present perfect」「queue」。';
 }
 
 setupTheme();
+setupHeaderChrome();
 setupNav();
 setupComplete();
 setupReset();

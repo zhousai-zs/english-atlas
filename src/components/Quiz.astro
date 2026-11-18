@@ -36,7 +36,7 @@ const keyJson = JSON.stringify(key).replace(/</g, '\\u003c');
             ) : (
               <div class="fill-row">
                 <label class="sr-only" for={`fill-${lessonId}-${index}`}>第 {index + 1} 题答案</label>
-                <input class="text-input" id={`fill-${lessonId}-${index}`} type="text" autocomplete="off" spellcheck="false" />
+                <input class="text-input" id={`fill-${lessonId}-${index}`} type="text" enterkeyhint="done" autocomplete="off" spellcheck="false" />
                 <button class="btn btn-ghost check" type="button">核对</button>
               </div>
             )}

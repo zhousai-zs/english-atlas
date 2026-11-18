@@ -15,7 +15,11 @@ const here = (ref: string) => (current === ref ? 'page' : undefined);
 const sectionHere = (prefix: string) => current === prefix || current.startsWith(`${prefix}:`);
 ---
 
-<nav id="sidebar" aria-label="课程目录">
+<nav id="sidebar" class="sidebar" aria-label="课程目录">
+  <div class="drawer-bar">
+    <span class="drawer-title">目录</span>
+    <button class="icon-btn drawer-close" id="nav-close" type="button">关闭</button>
+  </div>
   <a class="side-link nav-home" href={url('')} aria-current={here('home')}>首页</a>
   <a class="side-link" href={url('path')} aria-current={here('path')}>学习路径</a>
 

@@ -33,6 +33,22 @@ const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site) : undefin
     <meta name="ea-base" content={import.meta.env.BASE_URL} />
     <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} />
     {canonical && <link rel="canonical" href={canonical.href} />}
+    <noscript>
+      <style>
+        @media (max-width: 960px) {
+          #sidebar.sidebar {
+            position: static;
+            transform: none;
+            height: auto;
+            width: auto;
+            overflow: visible;
+            border-right: 0;
+            border-bottom: 1px solid var(--line);
+          }
+          .drawer-bar { display: none !important; }
+        }
+      </style>
+    </noscript>
     <script is:inline>
       try {
         var stored = localStorage.getItem('english-atlas:theme');
@@ -46,7 +62,7 @@ const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site) : undefin
     <Header />
     <div class="shell">
       <Sidebar catalog={catalog} current={current} />
-      <div id="nav-backdrop" class="nav-backdrop" hidden></div>
+      <div id="nav-backdrop" class="nav-backdrop" hidden aria-hidden="true"></div>
       <div class="main-col">
         <main id="main" class:list={{ wide }}>
           <slot />

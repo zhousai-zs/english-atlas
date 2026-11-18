@@ -3,7 +3,7 @@ import { url } from '../lib/url';
 ---
 
 <header class="header">
-  <button class="nav-toggle" id="nav-toggle" type="button" aria-expanded="false" aria-controls="sidebar">目录</button>
+  <button class="nav-toggle" id="nav-toggle" type="button" aria-expanded="false" aria-controls="sidebar" aria-label="打开目录">目录</button>
   <a class="brand" href={url('')}>
     <span class="seal" aria-hidden="true">英</span>
     <span>
@@ -13,7 +13,7 @@ import { url } from '../lib/url';
   </a>
   <form class="search" action={url('search')} method="get" role="search">
     <label class="sr-only" for="site-search">搜索课程</label>
-    <input id="site-search" name="q" type="search" placeholder="搜索，按 / 聚焦" autocomplete="off" />
+    <input id="site-search" name="q" type="search" placeholder="搜索课程" enterkeyhint="search" autocomplete="off" />
   </form>
   <div class="header-actions">
     <a class="icon-btn" href={url('progress')}>进度</a>
