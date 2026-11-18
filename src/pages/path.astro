@@ -1,0 +1,38 @@
+---
+import { render } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import { loadCatalog, mustGet } from '../lib/catalog';
+import { url } from '../lib/url';
+
+const catalog = await loadCatalog();
+const { Content } = await render(catalog.path);
+---
+
+<Base title={catalog.path.data.title} description={catalog.path.data.summary} current="path" wide>
+  <nav class="crumbs" aria-label="面包屑"><ol><li><a href={url('')}>首页</a></li><li aria-current="page">学习路径</li></ol></nav>
+  <p class="eyebrow">Path</p>
+  <h1>{catalog.path.data.title}</h1>
+  <p class="lede">{catalog.path.data.summary}</p>
+  <div class="prose"><Content /></div>
+  {catalog.path.data.stages.map((stage, index) => (
+    <section class="stage" id={stage.id}>
+      <div class="stage-top">
+        <span class="chip">阶段 {index + 1}</span>
+        <span class="chip chip-warm">{stage.difficulty}</span>
+        <span>{stage.hours}</span>
+      </div>
+      <h2>{stage.title}</h2>
+      <p>{stage.summary}</p>
+      <dl class="meta">
+        <div><dt>节奏</dt><dd>{stage.pace}</dd></div>
+        <div><dt>前提</dt><dd>{stage.prerequisite}</dd></div>
+      </dl>
+      <ol>
+        {stage.lessons.map((ref) => {
+          const link = mustGet(catalog.links, ref);
+          return <li><a href={link.href}>{link.title}</a></li>;
+        })}
+      </ol>
+    </section>
+  ))}
+</Base>

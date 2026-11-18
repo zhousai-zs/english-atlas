@@ -1,0 +1,53 @@
+---
+import type { QuizQuestion } from '../lib/schemas';
+
+interface Props {
+  lessonId: string;
+  questions: QuizQuestion[];
+}
+const { lessonId, questions } = Astro.props;
+const key = {
+  id: lessonId,
+  questions: questions.map((question) => ({
+    type: question.type,
+    answer: question.answer,
+    explain: question.explain,
+  })),
+};
+const keyJson = JSON.stringify(key).replace(/</g, '\\u003c');
+---
+
+<section class="quiz-wrap" aria-labelledby="quiz-title">
+  <h2 id="quiz-title">练习</h2>
+  <p>共 5 题。选择题一点就出解释；填空写完按「核对」或回车。做完会把成绩记在这台浏览器里，并标成已学完。</p>
+  <form class="quiz">
+    <ol>
+      {questions.map((question, index) => (
+        <li>
+          <fieldset class="quiz-item">
+            <legend>{index + 1}. {question.prompt}</legend>
+            {question.type === 'choice' ? (
+              question.choices?.map((choice, choiceIndex) => (
+                <label class="choice">
+                  <input type="radio" name={`q-${index}`} value={String(choiceIndex)} />
+                  <span>{choice}</span>
+                </label>
+              ))
+            ) : (
+              <div class="fill-row">
+                <label class="sr-only" for={`fill-${lessonId}-${index}`}>第 {index + 1} 题答案</label>
+                <input class="text-input" id={`fill-${lessonId}-${index}`} type="text" autocomplete="off" spellcheck="false" />
+                <button class="btn btn-ghost check" type="button">核对</button>
+              </div>
+            )}
+            <p class="feedback" role="status"></p>
+          </fieldset>
+        </li>
+      ))}
+    </ol>
+    <p class="quiz-score" role="status"></p>
+    <button class="btn btn-ghost retry" type="button">再做一次</button>
+    <script type="application/json" class="quiz-key" is:inline set:html={keyJson}></script>
+  </form>
+  <noscript><p>核对答案需要浏览器脚本。题目本身已经写在上面，可以先写在纸上。</p></noscript>
+</section>

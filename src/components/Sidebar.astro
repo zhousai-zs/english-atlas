@@ -1,0 +1,101 @@
+---
+import type { Catalog } from '../lib/catalog';
+import { groupBy } from '../lib/catalog';
+import { pad, url } from '../lib/url';
+
+interface Props {
+  catalog: Catalog;
+  current: string;
+}
+const { catalog, current } = Astro.props;
+const grammarGroups = groupBy(catalog.grammar);
+const vocabGroups = groupBy(catalog.vocabulary);
+
+const here = (ref: string) => (current === ref ? 'page' : undefined);
+const sectionHere = (prefix: string) => current === prefix || current.startsWith(`${prefix}:`);
+---
+
+<nav id="sidebar" aria-label="课程目录">
+  <a class="side-link nav-home" href={url('')} aria-current={here('home')}>首页</a>
+  <a class="side-link" href={url('path')} aria-current={here('path')}>学习路径</a>
+
+  <div class:list={['nav-group', { 'is-here': sectionHere('pronunciation') }]}>
+    <h2 class="nav-section"><a href={url('pronunciation')} aria-current={here('pronunciation')}>发音入门</a></h2>
+    <ul class="plain-list">
+      {catalog.pronunciation.map((item) => (
+        <li>
+          <a class="lesson-link" href={url(`pronunciation/${item.id}`)} data-nav-id={`pronunciation:${item.id}`} aria-current={here(`pronunciation:${item.id}`)}>
+            <span class="idx">{pad(item.data.order)}</span>
+            <span>{item.data.title}</span>
+            <span class="nav-mark" hidden>已学</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+
+  <div class:list={['nav-group', { 'is-here': sectionHere('grammar') }]}>
+    <h2 class="nav-section"><a href={url('grammar')} aria-current={here('grammar')}>语法</a></h2>
+    {grammarGroups.map((group) => (
+      <div>
+        <h3>{group.name}</h3>
+        <ul class="plain-list">
+          {group.items.map((item) => (
+            <li>
+              <a class="lesson-link" href={url(`grammar/${item.id}`)} data-nav-id={`grammar:${item.id}`} aria-current={here(`grammar:${item.id}`)}>
+                <span class="idx">{pad(item.data.order)}</span>
+                <span>{item.data.title}</span>
+                <span class="nav-mark" hidden>已学</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))}
+  </div>
+
+  <div class:list={['nav-group', { 'is-here': sectionHere('vocabulary') }]}>
+    <h2 class="nav-section"><a href={url('vocabulary')} aria-current={here('vocabulary')}>词汇</a></h2>
+    {vocabGroups.map((group) => (
+      <div>
+        <h3>{group.name}</h3>
+        <ul class="plain-list">
+          {group.items.map((item) => (
+            <li>
+              <a class="lesson-link" href={url(`vocabulary/${item.id}`)} data-nav-id={`vocabulary:${item.id}`} aria-current={here(`vocabulary:${item.id}`)}>
+                <span class="idx">{pad(item.data.order)}</span>
+                <span>{item.data.title}</span>
+                <span class="nav-mark" hidden>已学</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))}
+  </div>
+
+  <div class:list={['nav-group', { 'is-here': sectionHere('sentences') || sectionHere('analysis') }]}>
+    <h2 class="nav-section"><a href={url('sentences')} aria-current={here('sentences')}>长难句</a></h2>
+    <ul class="plain-list">
+      <li>
+        <a class="lesson-link" href={url(`sentences/${catalog.analysis.id}`)} data-nav-id={`analysis:${catalog.analysis.id}`} aria-current={here(`analysis:${catalog.analysis.id}`)}>
+          <span class="idx">00</span>
+          <span>{catalog.analysis.data.title}</span>
+          <span class="nav-mark" hidden>已学</span>
+        </a>
+      </li>
+      {catalog.sentences.map((item) => (
+        <li>
+          <a class="lesson-link" href={url(`sentences/${item.id}`)} data-nav-id={`sentences:${item.id}`} aria-current={here(`sentences:${item.id}`)}>
+            <span class="idx">{pad(item.data.order)}</span>
+            <span>{item.data.title}</span>
+            <span class="nav-mark" hidden>已学</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+
+  <a class="side-link" href={url('resources')} aria-current={here('resources')}>学习资料</a>
+  <a class="side-link" href={url('progress')} aria-current={here('progress')}>我的进度</a>
+</nav>

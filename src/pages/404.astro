@@ -1,0 +1,11 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/url';
+---
+
+<Base title="没有这一页" description="这个地址没有对应的课文。" current="missing">
+  <p class="eyebrow">404</p>
+  <h1>没有这一页</h1>
+  <p>地址可能写错了，或者这一课不在地图里。从首页或目录重新挑一课即可。</p>
+  <p><a class="btn" href={url('')}>回首页</a> <a class="btn btn-ghost" href={url('path')}>看学习路径</a></p>
+</Base>

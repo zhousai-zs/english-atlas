@@ -1,0 +1,128 @@
+---
+import { render, type CollectionEntry } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import StudyLesson from '../../components/StudyLesson.astro';
+import Quiz from '../../components/Quiz.astro';
+import { loadCatalog, mustGet, neighbors } from '../../lib/catalog';
+import { pad, url } from '../../lib/url';
+
+export async function getStaticPaths() {
+  const catalog = await loadCatalog();
+  return [
+    ...catalog.sentences.map((entry) => ({ params: { slug: entry.id }, props: { kind: 'sentence' as const, entry } })),
+    { params: { slug: catalog.analysis.id }, props: { kind: 'analysis' as const, entry: catalog.analysis } },
+  ];
+}
+
+interface Props {
+  kind: 'sentence' | 'analysis';
+  entry: CollectionEntry<'sentences'> | CollectionEntry<'analysis'>;
+}
+const { kind, entry } = Astro.props as Props;
+const catalog = await loadCatalog();
+const { Content } = await render(entry);
+
+const analysisPrev = undefined;
+const analysisNext = catalog.sentences[0]
+  ? { href: url(`sentences/${catalog.sentences[0].id}`), title: catalog.sentences[0].data.title }
+  : undefined;
+const sentenceNeighbors = kind === 'sentence' ? neighbors(catalog.sentences, entry.id, 'sentences') : { prev: undefined, next: undefined };
+const methodLink = { href: url(`sentences/${catalog.analysis.id}`), title: catalog.analysis.data.title };
+const prev = kind === 'analysis' ? analysisPrev : sentenceNeighbors.prev ?? (entry.id === catalog.sentences[0]?.id ? methodLink : undefined);
+const next = kind === 'analysis' ? analysisNext : sentenceNeighbors.next;
+---
+
+<Base title={entry.data.title} description={entry.data.summary} current={kind === 'analysis' ? `analysis:${entry.id}` : `sentences:${entry.id}`}>
+  {kind === 'analysis' && entry.collection === 'analysis' ? (
+    <StudyLesson
+      crumbs={[{ href: url(''), label: '首页' }, { href: url('sentences'), label: '长难句' }]}
+      eyebrow="长难句 · 方法"
+      title={entry.data.title}
+      titleEn={entry.data.titleEn}
+      summary={entry.data.summary}
+      level={entry.data.level}
+      minutes={entry.data.minutes}
+      lessonId={`analysis:${entry.id}`}
+      formula={entry.data.formula}
+      examples={entry.data.examples}
+      mistakes={entry.data.mistakes}
+      recap={entry.data.recap}
+      quiz={entry.data.quiz}
+      prerequisites={entry.data.prerequisites.map((ref) => mustGet(catalog.links, ref))}
+      prev={prev}
+      next={next}
+    >
+      <Content />
+    </StudyLesson>
+  ) : entry.collection === 'sentences' ? (
+    <article>
+      <nav class="crumbs" aria-label="面包屑">
+        <ol>
+          <li><a href={url('')}>首页</a></li>
+          <li><a href={url('sentences')}>长难句</a></li>
+          <li aria-current="page">{entry.data.title}</li>
+        </ol>
+      </nav>
+      <header class="lesson-head">
+        <p class="eyebrow">长难句 · {pad(entry.data.order)} · {entry.data.style} · 难度 {entry.data.difficulty}/5</p>
+        <h1>{entry.data.title}</h1>
+        <p class="title-en" lang="en">{entry.data.titleEn}</p>
+        <p class="summary">{entry.data.summary}</p>
+        <dl class="meta">
+          <div><dt>体裁</dt><dd>{entry.data.style}</dd></div>
+          <div><dt>建议用时</dt><dd>约 {entry.data.minutes} 分钟</dd></div>
+        </dl>
+        <button class="btn btn-ghost complete-btn" type="button" data-complete={`sentences:${entry.id}`} aria-pressed="false">标记为已学完</button>
+        <p data-score-for={`sentences:${entry.id}`} hidden></p>
+      </header>
+      <section>
+        <h2>原句</h2>
+        <blockquote class="quote-block"><p class="quote" lang="en">{entry.data.sentence}</p></blockquote>
+      </section>
+      <section>
+        <h2>结构拆解</h2>
+        <pre class="tree">{entry.data.tree.join('\n')}</pre>
+        <ol class="chunks">
+          {entry.data.breakdown.map((part, index) => (
+            <li class="chunk">
+              <p><span class="chunk-num">{index + 1}</span> <strong>{part.role}</strong></p>
+              <p class="chunk-en" lang="en">{part.en}</p>
+              <p class="chunk-zh">{part.zh}</p>
+              {part.note && <p class="ex-note">{part.note}</p>}
+            </li>
+          ))}
+        </ol>
+      </section>
+      <section>
+        <h2>分块释义</h2>
+        <ol class="chunks">
+          {entry.data.paraphrase.map((part, index) => (
+            <li class="chunk">
+              <p class="chunk-en" lang="en">{index + 1}. {part.en}</p>
+              <p class="chunk-zh">{part.zh}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+      <section>
+        <h2>全句译文</h2>
+        <p class="translation">{entry.data.translation}</p>
+      </section>
+      <section>
+        <h2>对应的语法课</h2>
+        <ul>
+          {entry.data.grammar.map((ref) => {
+            const link = mustGet(catalog.links, ref);
+            return <li><a href={link.href}>{link.title}</a></li>;
+          })}
+        </ul>
+      </section>
+      <div class="prose"><Content /></div>
+      <Quiz lessonId={`sentences:${entry.id}`} questions={entry.data.quiz} />
+      <nav class="pager" aria-label="上一篇和下一篇">
+        {prev ? <a href={prev.href}><span>上一篇</span><strong>{prev.title}</strong></a> : <span></span>}
+        {next ? <a class="next" href={next.href}><span>下一篇</span><strong>{next.title}</strong></a> : <span></span>}
+      </nav>
+    </article>
+  ) : null}
+</Base>

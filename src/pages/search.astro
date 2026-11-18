@@ -1,0 +1,18 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/url';
+---
+
+<Base title="搜索" description="在发音、语法、词汇、长难句和学习资料里搜索中文或英文。" current="search">
+  <nav class="crumbs" aria-label="面包屑"><ol><li><a href={url('')}>首页</a></li><li aria-current="page">搜索</li></ol></nav>
+  <p class="eyebrow">Search</p>
+  <h1>搜索</h1>
+  <p>搜索在你的浏览器里完成，索引是构建站点时生成的，不会把查询发到别处。</p>
+  <form role="search" onsubmit="return false;">
+    <label class="sr-only" for="search-query">关键词</label>
+    <input id="search-query" class="text-input" type="search" placeholder="例如：冠词、present perfect、queue" autocomplete="off" />
+  </form>
+  <p id="search-status" role="status"></p>
+  <ul id="search-results" class="card-list"></ul>
+  <noscript><p>搜索需要浏览器脚本。你也可以用目录按课查找。</p></noscript>
+</Base>

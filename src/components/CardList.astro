@@ -1,0 +1,32 @@
+---
+interface Item {
+  ref: string;
+  href: string;
+  index: string;
+  title: string;
+  titleEn?: string;
+  meta: string;
+  summary: string;
+}
+interface Props {
+  items: Item[];
+}
+const { items } = Astro.props;
+---
+
+<ul class="card-list">
+  {items.map((item) => (
+    <li>
+      <a class="card" href={item.href} data-nav-id={item.ref}>
+        <span class="card-top">
+          <span class="card-index">{item.index}</span>
+          <span class="card-meta">{item.meta}</span>
+          <span class="nav-mark" hidden>已学</span>
+        </span>
+        <h3>{item.title}</h3>
+        {item.titleEn && <p class="card-en" lang="en">{item.titleEn}</p>}
+        <p>{item.summary}</p>
+      </a>
+    </li>
+  ))}
+</ul>

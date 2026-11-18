@@ -1,0 +1,64 @@
+---
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Sidebar from '../components/Sidebar.astro';
+import { loadCatalog } from '../lib/catalog';
+
+interface Props {
+  title: string;
+  description?: string;
+  current?: string;
+  wide?: boolean;
+}
+
+const {
+  title,
+  description = '给中文母语者的从零英语课：发音、语法、词汇、长难句，进度只保存在你的浏览器里。',
+  current = '',
+  wide = false,
+} = Astro.props;
+
+const catalog = await loadCatalog();
+const fullTitle = title === '英语地图' ? '英语地图 · 给中文母语者的从零英语课' : `${title} · 英语地图`;
+const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site) : undefined;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="ea-base" content={import.meta.env.BASE_URL} />
+    <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} />
+    {canonical && <link rel="canonical" href={canonical.href} />}
+    <script is:inline>
+      try {
+        var stored = localStorage.getItem('english-atlas:theme');
+        var dark = stored === 'dark' || (stored !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">跳到正文</a>
+    <Header />
+    <div class="shell">
+      <Sidebar catalog={catalog} current={current} />
+      <div id="nav-backdrop" class="nav-backdrop" hidden></div>
+      <div class="main-col">
+        <main id="main" class:list={{ wide }}>
+          <slot />
+        </main>
+        <footer class="site-footer">
+          <p>英语地图是给中文母语者的基础课。学习进度和测验成绩只写在这台浏览器的 localStorage 里，没有账号，也没有统计。</p>
+          <p>内容为原创讲解与例句。资料页只链到公开、稳定的官方站点。</p>
+        </footer>
+      </div>
+    </div>
+    <script>
+      import '../scripts/site.ts';
+    </script>
+  </body>
+</html>
