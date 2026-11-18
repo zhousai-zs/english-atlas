@@ -370,7 +370,14 @@ function setupSearch() {
     status.textContent = ranked.length ? `找到 ${ranked.length} 条` : `没有找到与「${query}」匹配的内容。`;
     results.innerHTML = ranked
       .map(({ doc }) => {
-        const source = `${doc.summary} ${doc.text}`;
+        const source = [doc.summary, doc.text]
+          .map((field) => {
+            const value = field.trim();
+            if (!value) return '';
+            return /[。．.!?！？;；:：…]$/.test(value) ? value : `${value}.`;
+          })
+          .filter(Boolean)
+          .join(' ');
         return `<li><a class="card" href="${escapeHtml(doc.href)}"><span class="chip">${escapeHtml(doc.section)}</span><h3>${escapeHtml(doc.title)}</h3><p class="card-en" lang="en">${escapeHtml(doc.titleEn)}</p><p>${snippet(source, query)}</p></a></li>`;
       })
       .join('');

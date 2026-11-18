@@ -11,6 +11,8 @@ export interface SearchDoc {
   text: string;
 }
 
+const FIELD_END = /[。．.!?！？;；:：…]$/;
+
 function plain(value: string): string {
   return value
     .replace(/```[\s\S]*?```/g, ' ')
@@ -23,10 +25,25 @@ function plain(value: string): string {
     .trim();
 }
 
+function punctuate(value: string): string {
+  if (!value || FIELD_END.test(value)) return value;
+  const han = (value.match(/[\u4e00-\u9fff]/g) ?? []).length;
+  const latin = (value.match(/[A-Za-z]/g) ?? []).length;
+  return `${value}${han > latin ? '。' : '.'}`;
+}
+
+function joinFields(parts: Array<string | undefined>): string {
+  return parts
+    .flatMap((part) => (part ?? '').split(/\n+/))
+    .map((line) => punctuate(plain(line)))
+    .filter(Boolean)
+    .join(' ');
+}
+
 export function buildSearchDocs(catalog: Catalog): SearchDoc[] {
   const docs: SearchDoc[] = [];
   const push = (doc: SearchDoc) => {
-    docs.push({ ...doc, text: plain(doc.text).slice(0, 8000) });
+    docs.push({ ...doc, summary: punctuate(plain(doc.summary)), text: doc.text.slice(0, 8000) });
   };
 
   push({
@@ -36,7 +53,10 @@ export function buildSearchDocs(catalog: Catalog): SearchDoc[] {
     title: catalog.path.data.title,
     titleEn: 'Learning path',
     summary: catalog.path.data.summary,
-    text: `${catalog.path.body ?? ''}\n${catalog.path.data.stages.map((stage) => `${stage.title} ${stage.summary} ${stage.difficulty} ${stage.pace}`).join('\n')}`,
+    text: joinFields([
+      catalog.path.body,
+      ...catalog.path.data.stages.flatMap((stage) => [stage.title, stage.summary, stage.difficulty, stage.pace, stage.prerequisite]),
+    ]),
   });
 
   for (const item of catalog.pronunciation) {
@@ -47,7 +67,12 @@ export function buildSearchDocs(catalog: Catalog): SearchDoc[] {
       title: item.data.title,
       titleEn: item.data.titleEn,
       summary: item.data.summary,
-      text: [item.body, item.data.formula, item.data.recap.join(' '), ...item.data.examples.flatMap((ex) => [ex.en, ex.zh, ex.note ?? ''])].join('\n'),
+      text: joinFields([
+        item.body,
+        item.data.formula,
+        ...item.data.recap,
+        ...item.data.examples.flatMap((ex) => [ex.en, ex.zh, ex.note]),
+      ]),
     });
   }
   for (const item of catalog.grammar) {
@@ -58,7 +83,12 @@ export function buildSearchDocs(catalog: Catalog): SearchDoc[] {
       title: item.data.title,
       titleEn: item.data.titleEn,
       summary: item.data.summary,
-      text: [item.body, item.data.formula, item.data.recap.join(' '), ...item.data.examples.flatMap((ex) => [ex.en, ex.zh, ex.note ?? ''])].join('\n'),
+      text: joinFields([
+        item.body,
+        item.data.formula,
+        ...item.data.recap,
+        ...item.data.examples.flatMap((ex) => [ex.en, ex.zh, ex.note]),
+      ]),
     });
   }
   for (const item of catalog.vocabulary) {
@@ -69,11 +99,19 @@ export function buildSearchDocs(catalog: Catalog): SearchDoc[] {
       title: item.data.title,
       titleEn: item.data.titleEn,
       summary: item.data.summary,
-      text: [
+      text: joinFields([
         item.body,
-        item.data.recap.join(' '),
-        ...item.data.entries.flatMap((entry) => [entry.head, entry.pos, entry.ipa, entry.gloss, entry.note ?? '', ...entry.collocations, ...entry.examples.flatMap((ex) => [ex.en, ex.zh])]),
-      ].join('\n'),
+        ...item.data.recap,
+        ...item.data.entries.flatMap((entry) => [
+          entry.head,
+          entry.pos,
+          entry.ipa,
+          entry.gloss,
+          entry.note,
+          ...entry.collocations,
+          ...entry.examples.flatMap((ex) => [ex.en, ex.zh, ex.note]),
+        ]),
+      ]),
     });
   }
   push({
@@ -83,7 +121,12 @@ export function buildSearchDocs(catalog: Catalog): SearchDoc[] {
     title: catalog.analysis.data.title,
     titleEn: catalog.analysis.data.titleEn,
     summary: catalog.analysis.data.summary,
-    text: [catalog.analysis.body, catalog.analysis.data.formula, ...catalog.analysis.data.examples.flatMap((ex) => [ex.en, ex.zh])].join('\n'),
+    text: joinFields([
+      catalog.analysis.body,
+      catalog.analysis.data.formula,
+      ...catalog.analysis.data.recap,
+      ...catalog.analysis.data.examples.flatMap((ex) => [ex.en, ex.zh, ex.note]),
+    ]),
   });
   for (const item of catalog.sentences) {
     push({
@@ -93,14 +136,14 @@ export function buildSearchDocs(catalog: Catalog): SearchDoc[] {
       title: item.data.title,
       titleEn: item.data.titleEn,
       summary: item.data.summary,
-      text: [
+      text: joinFields([
         item.body,
         item.data.sentence,
         item.data.translation,
-        item.data.tree.join('\n'),
-        ...item.data.breakdown.flatMap((part) => [part.role, part.en, part.zh, part.note ?? '']),
+        ...item.data.tree,
+        ...item.data.breakdown.flatMap((part) => [part.role, part.en, part.zh, part.note]),
         ...item.data.paraphrase.flatMap((part) => [part.en, part.zh]),
-      ].join('\n'),
+      ]),
     });
   }
   push({
@@ -110,10 +153,14 @@ export function buildSearchDocs(catalog: Catalog): SearchDoc[] {
     title: catalog.resources.data.title,
     titleEn: 'Resources',
     summary: catalog.resources.data.summary,
-    text: [
+    text: joinFields([
       catalog.resources.body,
-      ...catalog.resources.data.groups.flatMap((group) => [group.title, group.intro, ...group.items.flatMap((item) => [item.name, item.note, item.url])]),
-    ].join('\n'),
+      ...catalog.resources.data.groups.flatMap((group) => [
+        group.title,
+        group.intro,
+        ...group.items.flatMap((item) => [item.name, item.note, item.url]),
+      ]),
+    ]),
   });
 
   return docs;

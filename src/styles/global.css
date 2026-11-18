@@ -85,6 +85,13 @@ img { max-width: 100%; }
 :focus-visible { outline: 2px solid var(--pine); outline-offset: 3px; }
 ::selection { background: var(--cinnabar-soft); color: var(--ink); }
 
+mark {
+  background: #f3e2a0;
+  color: #1c1915;
+  padding: 0 0.12em;
+  border-radius: 2px;
+}
+
 .skip {
   position: absolute;
   left: 1rem;
